@@ -6,9 +6,11 @@ from pyevolve import G1DBinaryString
 from pyevolve import GSimpleGA
 from pyevolve import Selectors
 from pyevolve import Mutators
+import csv
 
 from random import randint as rand_randint, choice as rand_choice
 from random import random as rand_random
+from random import shuffle
 
 from pyevolve import Util
 
@@ -16,15 +18,17 @@ ruleSize=76
 atribNum=10
 atribSize=[34,4,4,17,2,2,4,4,2,3]
 
+trainset=[]
+inputset=[]
+valset=[]
+
 # This function is the evaluation function, we want
 # to give high score to more zero'ed chromosomes
 def eval_func(chromosome):
    score = 0.0
 
-   # iterate over the chromosome
-   for value in chromosome:
-      if value == 0:
-         score += 0.1
+   for i in xrange(len(chromosome)):
+       if chromosome.genomeList[i]==1:score+=1
       
    return score/len(chromosome)
 
@@ -63,6 +67,43 @@ def AddAlternative(genome, **args):
                        break
             if m >0 or zeros==0:break
    return int(mutations)
+
+def AddAlternative(genome, **args):
+   """ The classical flip mutator for binary strings """
+   if args["pmut"] <= 0.0: return 0
+   stringLength = len(genome)
+   mutations = args["pmut"] * (stringLength/ruleSize*atribNum)
+   
+   if mutations < 1.0:
+      mutations = 0
+      for it in xrange(stringLength/ruleSize*atribNum):
+         if Util.randomFlipCoin(args["pmut"]):
+            while True:
+                zeros=0
+                for i in xrange(atribSize[it%atribNum]):
+                    if genome[it/atribNum + it%atribNum +i ] ==0:
+                        zeros+=1
+                        if Util.randomFlipCoin(0.5):
+                           genome[it/atribNum + it%atribNum +i ] = 1
+                           mutations+=1
+                           break
+                if mutations >0 or zeros==0:break
+   else:
+      for it in xrange(int(round(mutations))):
+         while True:    
+            zeros=0
+            m=0
+            for i in xrange(atribSize[it%atribNum]):
+                if genome[it/atribNum + it%atribNum +i ] ==0:
+                    zeros+=1
+                    if Util.randomFlipCoin(0.5):
+                       genome[it/atribNum + it%atribNum +i ] = 1
+                       mutations+=1
+                       m=1
+                       break
+            if m >0 or zeros==0:break
+   return int(mutations)
+
 
 
 def CrossOver(genome,**args):
@@ -128,6 +169,20 @@ def CrossOver(genome,**args):
 
 
 def run_main():
+
+   Reader = csv.reader(open('Dataextra.txt','rb'))
+
+   i=0
+   for x in Reader:
+      inputset.insert(i,x)
+      i+=1
+
+   shuffle(inputset)
+   p=0.5
+   n= int(round(len(inputset)*p))   
+   trainset = inputset[0:n]
+   valset = inputset[n+1:-1]
+
    # Genome instance
    genome = G1DBinaryString.G1DBinaryString(ruleSize*2)
 
