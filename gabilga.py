@@ -8,47 +8,133 @@ from pyevolve import Selectors
 from pyevolve import Mutators
 import csv
 
+import sys
+
 from random import randint as rand_randint, choice as rand_choice
 from random import random as rand_random
 from random import shuffle
 
 from pyevolve import Util
 
-ruleSize=76
+#probability to apply add alternative
+PADD=0.01
+#probability to apply drop condition
+PDROP=0.60
+
+ruleSize=41
 atribNum=10
-atribSize=[34,4,4,17,2,2,4,4,2,3]
+# v1 -16 17-20 21-24 25-28 29-32 33-36 37-40 41-44 45-48 49+
+# v4 0 1 2 3 4 5-8 9+
+atribSize=[10,4 ,4 ,7 ,2 ,2 ,4 ,4 ,2 ,2 ]
+atribPos= [0 ,10,14,18,25,27,29,33,37,39]
 
 trainset=[]
 inputset=[]
 valset=[]
 
+	
+def evaluate(genome, x):
+	xt=[]
+	if x[0]<=16 : xt+=[0]
+	elif 17<=x[0]<=20: xt+=[1]
+	elif 21<=x[0]<=24: xt+=[2]
+	elif 25<=x[0]<=28: xt+=[3]
+	elif 29<=x[0]<=32: xt+=[4]
+	elif 33<=x[0]<=36: xt+=[5]
+	elif 37<=x[0]<=40: xt+=[6]
+	elif 41<=x[0]<=44: xt+=[7]
+	elif 45<=x[0]<=48: xt+=[8]
+	else: xt+=[9]
+
+	xt+=[x[1]-1]
+	xt+=[x[2]-1]
+
+	if x[3]<=0 : xt+=[0]
+	elif x[3]==1: xt+=[1]
+	elif x[3]==2: xt+=[2]
+	elif x[3]==3: xt+=[3]
+	elif x[3]==4: xt+=[4]
+	elif 5<=x[3]<=8: xt+=[5]
+	else: xt+=[6]
+
+	xt+=[x[4]]
+	xt+=[x[5]]
+	xt+=[x[6]-1]
+	xt+=[x[7]-1]
+	xt+=[x[8]]
+	xt+=[x[9]]
+
+	rules = len(genome)/ruleSize
+
+	y=[]
+	
+	for i in xrange(rules):
+		value =0
+		for j in xrange(ruleSize-2):
+			if genome[i*ruleSize+j]==1:value-=1
+		for j in xrange(9):
+#			print i*ruleSize,atribPos[j],xt[j]
+			if genome[i*ruleSize+atribPos[j]+xt[j]]==1:value+=atribSize[j]
+		ans = genome[(i+1)*ruleSize-1]
+		ans += genome[(i+1)*ruleSize-2]
+
+		y+=[(value,ans)]
+
+	y.sort(key=lambda a:a[1])
+	return y[-1][1]
+
+
 # This function is the evaluation function, we want
 # to give high score to more zero'ed chromosomes
 def eval_func(chromosome):
-   score = 0.0
+	score = 0.0
+#	print trainset
+	for x in trainset:
+#		print evaluate(chromosome,x), x[9]
+		if evaluate(chromosome,x)==x[9]:score +=1
+	return score
 
-   for i in xrange(len(chromosome)):
-       if chromosome.genomeList[i]==1:score+=1
-      
-   return score/len(chromosome)
+
+def DropCondition(genome, **args):
+#	printg(genome)
+
+	stringLength = len(genome)
+	mutations = PDROP * (stringLength/ruleSize*(atribNum))
+	if mutations < 1.0:
+		mutations = 0
+		for it in xrange(stringLength/ruleSize*atribNum):
+			if Util.randomFlipCoin(PDROP):
+				for i in xrange(atribSize[it%atribNum]-1):
+					genome[ruleSize*(it/atribNum) + atribPos[it%atribNum] + i]=1
+				mutations +=1
+	else:
+		for it in xrange(int(round(mutations))):
+			which = rand_randint(0, stringLength/ruleSize*atribNum-1)
+			for i in xrange(atribSize[which%atribNum]):
+					genome[ruleSize*(which/atribNum) + atribPos[which%atribNum] + i]=1
+#	print '>>', mutations
+#	printg (genome)
+	return int(mutations)
+					
+
+
 
 def AddAlternative(genome, **args):
    """ The classical flip mutator for binary strings """
-   if args["pmut"] <= 0.0: return 0
    stringLength = len(genome)
-   mutations = args["pmut"] * (stringLength/ruleSize*atribNum)
+   mutations = PADD * (stringLength/ruleSize*atribNum)
    
    if mutations < 1.0:
       mutations = 0
       for it in xrange(stringLength/ruleSize*atribNum):
-         if Util.randomFlipCoin(args["pmut"]):
+         if Util.randomFlipCoin(PADD):
             while True:
                 zeros=0
                 for i in xrange(atribSize[it%atribNum]):
-                    if genome[it/atribNum + it%atribNum +i ] ==0:
+                    if genome[ruleSize*(it/atribNum) + atribPos[it%atribNum] + i] ==0:
                         zeros+=1
                         if Util.randomFlipCoin(0.5):
-                           genome[it/atribNum + it%atribNum +i ] = 1
+                           genome[ruleSize*(it/atribNum) + atribPos[it%atribNum] + i] = 1
                            mutations+=1
                            break
                 if mutations >0 or zeros==0:break
@@ -58,53 +144,15 @@ def AddAlternative(genome, **args):
             zeros=0
             m=0
             for i in xrange(atribSize[it%atribNum]):
-                if genome[it/atribNum + it%atribNum +i ] ==0:
+                if genome[ruleSize*(it/atribNum) + atribPos[it%atribNum] + i] ==0:
                     zeros+=1
                     if Util.randomFlipCoin(0.5):
-                       genome[it/atribNum + it%atribNum +i ] = 1
+                       genome[ruleSize*(it/atribNum) + atribPos[it%atribNum] + i] = 1
                        mutations+=1
                        m=1
                        break
             if m >0 or zeros==0:break
    return int(mutations)
-
-def AddAlternative(genome, **args):
-   """ The classical flip mutator for binary strings """
-   if args["pmut"] <= 0.0: return 0
-   stringLength = len(genome)
-   mutations = args["pmut"] * (stringLength/ruleSize*atribNum)
-   
-   if mutations < 1.0:
-      mutations = 0
-      for it in xrange(stringLength/ruleSize*atribNum):
-         if Util.randomFlipCoin(args["pmut"]):
-            while True:
-                zeros=0
-                for i in xrange(atribSize[it%atribNum]):
-                    if genome[it/atribNum + it%atribNum +i ] ==0:
-                        zeros+=1
-                        if Util.randomFlipCoin(0.5):
-                           genome[it/atribNum + it%atribNum +i ] = 1
-                           mutations+=1
-                           break
-                if mutations >0 or zeros==0:break
-   else:
-      for it in xrange(int(round(mutations))):
-         while True:    
-            zeros=0
-            m=0
-            for i in xrange(atribSize[it%atribNum]):
-                if genome[it/atribNum + it%atribNum +i ] ==0:
-                    zeros+=1
-                    if Util.randomFlipCoin(0.5):
-                       genome[it/atribNum + it%atribNum +i ] = 1
-                       mutations+=1
-                       m=1
-                       break
-            if m >0 or zeros==0:break
-   return int(mutations)
-
-
 
 def CrossOver(genome,**args):
    """ The 1D Binary String crossover, Two Point
@@ -168,19 +216,31 @@ def CrossOver(genome,**args):
 
 
 
+def printg(genome):
+	rules = len(genome)/ruleSize
+	for x in xrange(rules):
+		for i in xrange(10):
+			for j in xrange(atribSize[i]):
+				sys.stdout.write(str(genome[x*ruleSize+atribPos[i]+j]))
+			sys.stdout.write(" ")
+		sys.stdout.write(",")
+	sys.stdout.write("\n")
+
 def run_main():
 
    Reader = csv.reader(open('Dataextra.txt','rb'))
 
    i=0
    for x in Reader:
-      inputset.insert(i,x)
+      inputset.insert(i,map(int,x))
       i+=1
 
    shuffle(inputset)
    p=0.5
-   n= int(round(len(inputset)*p))   
-   trainset = inputset[0:n]
+   n= int(round(len(inputset)*p))
+ 
+   trainset[0:n] = inputset[0:n]
+#   print trainset
    valset = inputset[n+1:-1]
 
    # Genome instance
@@ -189,6 +249,9 @@ def run_main():
    # The evaluator function (objective function)
    genome.evaluator.set(eval_func)
    genome.mutator.set(Mutators.G1DBinaryStringMutatorFlip)
+   genome.mutator.set(AddAlternative)
+   genome.mutator.set(DropCondition)
+   genome.mutator.setRandomApply(True)
    genome.crossover.set(CrossOver)
 
    # Genetic Algorithm Instance
@@ -202,6 +265,7 @@ def run_main():
 
    # Best individual
    print ga.bestIndividual()
+   printg (ga.bestIndividual())
 
 if __name__ == "__main__":
    run_main()
