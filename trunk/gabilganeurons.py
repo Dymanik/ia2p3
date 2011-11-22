@@ -21,11 +21,11 @@ PADD=0.01
 #probability to apply drop condition
 PDROP=0.60
 
-ruleSize=41
+ruleSize=40
 atribNum=10
 # v1 -16 17-20 21-24 25-28 29-32 33-36 37-40 41-44 45-48 49+
 # v4 0 1 2 3 4 5-8 9+
-atribSize=[10,4 ,4 ,7 ,2 ,2 ,4 ,4 ,2 ,2 ]
+atribSize=[10,4 ,4 ,7 ,2 ,2 ,4 ,4 ,2 ,1]
 atribPos= [0 ,10,14,18,25,27,29,33,37,39]
 
 trainset=[]
@@ -76,7 +76,6 @@ def evaluate(genome, x):
 		#	print i*ruleSize,atribPos[j],xt[j]
 			if genome[i*ruleSize+atribPos[j]+xt[j]]==1:value+=atribSize[j]
 		ans = genome[(i+1)*ruleSize-1]
-		ans += genome[(i+1)*ruleSize-2]
 
 		y+=[(value,ans)]
 
@@ -86,12 +85,33 @@ def evaluate(genome, x):
 
 # This function is the evaluation function, we want
 # to give high score to more zero'ed chromosomes
-def eval_func(chromosome):
+def eval_func1(chromosome):
+	score = 0.0
+#	print trainset
+	if len(chromosome) > ruleSize*20:return score
+	for x in trainset:
+#		print evaluate(chromosome,x), x
+		y = 1 if x[9]==1 else 0
+		if evaluate(chromosome,x)==y:score +=1
+	return score**2
+
+def eval_func2(chromosome):
 	score = 0.0
 #	print trainset
 	if len(chromosome) > ruleSize*20:return score
 	for x in trainset:
 #		print evaluate(chromosome,x), x[9]
+		y = 1 if x[9]==2 else 0
+		if evaluate(chromosome,x)==x[9]-1:score +=1
+	return score**2
+
+def eval_func3(chromosome):
+	score = 0.0
+#	print trainset
+	if len(chromosome) > ruleSize*20:return score
+	for x in trainset:
+#		print evaluate(chromosome,x), x[9]
+		y = 1 if x[9]==3 else 0
 		if evaluate(chromosome,x)==x[9]-1:score +=1
 	return score**2
 
@@ -116,9 +136,6 @@ def DropCondition(genome, **args):
 #	print '>>', mutations
 #	printg (genome)
 	return int(mutations)
-					
-
-
 
 def AddAlternative(genome, **args):
    """ The classical flip mutator for binary strings """
@@ -248,7 +265,7 @@ def run_main():
    genome = G1DBinaryString.G1DBinaryString(ruleSize*10)
 
    # The evaluator function (objective function)
-   genome.evaluator.set(eval_func)
+   genome.evaluator.set(eval_func1)
    genome.mutator.set(Mutators.G1DBinaryStringMutatorFlip)
    genome.mutator.add(AddAlternative)
    genome.mutator.add(DropCondition)
@@ -256,24 +273,55 @@ def run_main():
    genome.crossover.set(CrossOver)
 
    # Genetic Algorithm Instance
-   ga = GSimpleGA.GSimpleGA(genome)
-   ga.selector.set(Selectors.GTournamentSelector)
-   ga.setGenerations(70)
-   ga.setElitism(True)
+   ga1 = GSimpleGA.GSimpleGA(genome)
+   ga1.selector.set(Selectors.GTournamentSelector)
+   ga1.setGenerations(40)
+   ga1.setElitism(True)
 
+   ga2 = GSimpleGA.GSimpleGA(genome)
+   ga2.selector.set(Selectors.GTournamentSelector)
+   ga2.setGenerations(40)
+   ga2.setElitism(True)
+
+   ga3 = GSimpleGA.GSimpleGA(genome)
+   ga3.selector.set(Selectors.GTournamentSelector)
+   ga3.setGenerations(40)
+   ga3.setElitism(True)
+
+   print "Primera clase"
    # Do the evolution, with stats dump
    # frequency of 10 generations
-   ga.evolve(freq_stats=1)
+   ga1.evolve(freq_stats=10)
 
    # Best individual
-   print ga.bestIndividual()
-   printg (ga.bestIndividual())
+   #print ga.bestIndividual()
+   #printg (ga.bestIndividual())
 
-   score = 0.0
+   b = [ga1.bestIndividual()]
+
+   print "Segunda Clase"
+   genome.evaluator.set(eval_func2)
+   ga2.evolve(freq_stats=10)
+
+   b = b+[ga2.bestIndividual()]
+
+   print "Tercera Clase"
+   genome.evaluator.set(eval_func3)
+   ga3.evolve(freq_stats=10)
+
+   b = b+[ga3.bestIndividual()]
+
+   score = [0,0,0]
+   tscore = 0;
    for x in inputset:
-      if evaluate(ga.bestIndividual(),x)==x[9]-1:score +=1
+      clas = [0,0,0]
+      clas[x[9]-1]=1
+      if evaluate(b[0],x)==clas[0]:score[0]+=1
+      if evaluate(b[1],x)==clas[1]:score[1]+=1
+      if evaluate(b[2],x)==clas[2]:score[2]+=1
+      if [evaluate(b[0],x),evaluate(b[1],x),evaluate(b[2],x)] == clas:tscore+=1
 
-   print score
+   print score[0], score[1], score[2], tscore
 	
 
 if __name__ == "__main__":
