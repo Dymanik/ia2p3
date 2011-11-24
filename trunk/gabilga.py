@@ -89,10 +89,11 @@ def evaluate(genome, x):
 def eval_func(chromosome):
 	score = 0.0
 #	print trainset
-	if len(chromosome) > ruleSize*20:return score
+	if len(chromosome) > ruleSize*25:return score
 	for x in trainset:
 #		print evaluate(chromosome,x), x[9]
 		if evaluate(chromosome,x)==x[9]-1:score +=1
+	score= score/len(trainset)
 	return score**2
 
 
@@ -245,7 +246,7 @@ def run_main():
    valset = inputset[n+1:-1]
 
    # Genome instance
-   genome = G1DBinaryString.G1DBinaryString(ruleSize*10)
+   genome = G1DBinaryString.G1DBinaryString(ruleSize*15)
 
    # The evaluator function (objective function)
    genome.evaluator.set(eval_func)
@@ -257,9 +258,9 @@ def run_main():
 
    # Genetic Algorithm Instance
    ga = GSimpleGA.GSimpleGA(genome)
-   ga.selector.set(Selectors.GTournamentSelector)
+   ga.selector.set(Selectors.GRankSelector)
    ga.setGenerations(70)
-   ga.setElitism(True)
+#   ga.setElitism(True)
 
    # Do the evolution, with stats dump
    # frequency of 10 generations
@@ -270,9 +271,10 @@ def run_main():
    printg (ga.bestIndividual())
 
    score = 0.0
-   for x in inputset:
+   for x in valset:
       if evaluate(ga.bestIndividual(),x)==x[9]-1:score +=1
 
+   score = score/len(valset)
    print score
 	
 

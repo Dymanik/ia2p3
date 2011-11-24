@@ -312,16 +312,17 @@ def run_main():
    b = b+[ga3.bestIndividual()]
 
    score = [0,0,0]
-   tscore = 0;
-   for x in inputset:
+   tscore = 0.0;
+   for x in valset:
       clas = [0,0,0]
       clas[x[9]-1]=1
+      print [evaluate(b[0],x),evaluate(b[1],x),evaluate(b[2],x)],clas
       if evaluate(b[0],x)==clas[0]:score[0]+=1
       if evaluate(b[1],x)==clas[1]:score[1]+=1
       if evaluate(b[2],x)==clas[2]:score[2]+=1
       if [evaluate(b[0],x),evaluate(b[1],x),evaluate(b[2],x)] == clas:tscore+=1
 
-   print score[0], score[1], score[2], tscore
+   print score[0]/len(valset), score[1]/len(valset), score[2]/len(valset), tscore/len(valset)
 	
 
 if __name__ == "__main__":
