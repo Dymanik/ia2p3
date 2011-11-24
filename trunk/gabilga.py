@@ -6,6 +6,7 @@ from pyevolve import G1DBinaryString
 from pyevolve import GSimpleGA
 from pyevolve import Selectors
 from pyevolve import Mutators
+from pyevolve import DBAdapters
 import csv
 
 import sys
@@ -246,7 +247,7 @@ def run_main():
    valset = inputset[n+1:-1]
 
    # Genome instance
-   genome = G1DBinaryString.G1DBinaryString(ruleSize*15)
+   genome = G1DBinaryString.G1DBinaryString(ruleSize*10)
 
    # The evaluator function (objective function)
    genome.evaluator.set(eval_func)
@@ -258,17 +259,19 @@ def run_main():
 
    # Genetic Algorithm Instance
    ga = GSimpleGA.GSimpleGA(genome)
-   ga.selector.set(Selectors.GRankSelector)
+   ga.selector.set(Selectors.GTournamentSelector)
+   sqlite_adapter = DBAdapters.DBSQLite(identify=sys.argv[1])
+   ga.setDBAdapter(sqlite_adapter)
    ga.setGenerations(70)
-#   ga.setElitism(True)
+   ga.setElitism(True)
 
    # Do the evolution, with stats dump
    # frequency of 10 generations
-   ga.evolve(freq_stats=1)
+   ga.evolve(freq_stats=0)
 
    # Best individual
-   print ga.bestIndividual()
-   printg (ga.bestIndividual())
+   #print ga.bestIndividual()
+   #printg (ga.bestIndividual())
 
    score = 0.0
    for x in valset:
