@@ -231,7 +231,7 @@ def printg(genome):
 
 def run_main():
 
-   Reader = csv.reader(open('Dataextra.txt','rb'))
+   Reader = csv.reader(open(sys.argv[1],'rb'))
 
    i=0
    for x in Reader:
@@ -260,14 +260,14 @@ def run_main():
    # Genetic Algorithm Instance
    ga = GSimpleGA.GSimpleGA(genome)
    ga.selector.set(Selectors.GTournamentSelector)
-   sqlite_adapter = DBAdapters.DBSQLite(identify=sys.argv[1])
-   ga.setDBAdapter(sqlite_adapter)
+   #sqlite_adapter = DBAdapters.DBSQLite(identify=sys.argv[1])
+   #ga.setDBAdapter(sqlite_adapter)
    ga.setGenerations(70)
    ga.setElitism(True)
 
    # Do the evolution, with stats dump
    # frequency of 10 generations
-   ga.evolve(freq_stats=0)
+   ga.evolve(freq_stats=10)
 
    # Best individual
    #print ga.bestIndividual()
@@ -278,6 +278,7 @@ def run_main():
       if evaluate(ga.bestIndividual(),x)==x[9]-1:score +=1
 
    score = score/len(valset)
+   print 'porcentaje correctamente clasificado del conjunto de validacion'
    print score
 	
 
